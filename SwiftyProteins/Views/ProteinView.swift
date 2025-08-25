@@ -151,7 +151,7 @@ struct ProteinView: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                             let wasFavorite = proteins.isFavorite(protein)
                             proteins.toggleFavorite(protein)
-                            favoriteAlertMessage = wasFavorite ? "Retiré des favoris" : "Ajouté aux favoris"
+                            favoriteAlertMessage = wasFavorite ? "Removed from favorites" : "Added to favorites"
                             showFavoriteAlert = true
                         }
                     }) {
@@ -223,8 +223,8 @@ struct ProteinView: View {
         .onDisappear {
             stopParallaxMotion()
         }
-        .alert("Favoris", isPresented: $showFavoriteAlert) {
-            Button("OK", role: .cancel) { showFavoriteAlert = false }
+        .alert("Favorite", isPresented: $showFavoriteAlert) {
+            Button("Got it!", role: .cancel) { showFavoriteAlert = false }
         } message: {
             Text(favoriteAlertMessage)
         }
