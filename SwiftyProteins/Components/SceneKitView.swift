@@ -12,7 +12,7 @@ import UIKit
 
 struct SceneKitView: UIViewRepresentable {
     
-    // Référence statique faible à la dernière vue pour snapshot externe
+    // Static variable to hold the last created SCNView for snapshot purposes
     static weak var lastView: SCNView?
     
     var view = SCNView()
@@ -32,10 +32,9 @@ struct SceneKitView: UIViewRepresentable {
         view.scene = self.scene
         view.allowsCameraControl = true
         view.isUserInteractionEnabled = true
-        view.backgroundColor = UIColor.clear // Transparent pour permettre le background scientifique
+        view.backgroundColor = UIColor.clear // Set transparent background for scientificMode
         view.antialiasingMode = .multisampling4X
         
-        // Optimized config for iOS 18
         view.preferredFramesPerSecond = 60
         // Set rendersContinuously to false to optimize performance
         view.rendersContinuously = false

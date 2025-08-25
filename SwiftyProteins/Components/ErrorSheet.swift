@@ -10,13 +10,12 @@ import SwiftUI
 struct ErrorSheet: View {
     let errorMessage: String
     @Binding var isPresented: Bool
-    let onClose: () -> Void  // Nouveau callback pour gérer la navigation
+    let onClose: () -> Void // Callback to handle closing action
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // En-tête avec icône d'erreur
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.largeTitle)
@@ -33,16 +32,11 @@ struct ErrorSheet: View {
                         Spacer()
                     }
                     .padding(.horizontal)
-                    
                     Divider()
-                    
-                    // Contenu de l'erreur avec formatage monospace
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Error Details")
                             .font(.headline)
                             .padding(.horizontal)
-                        
-                        // Zone de code avec fond gris
                         VStack(alignment: .leading, spacing: 8) {
                             Text(errorMessage)
                                 .font(.system(.caption, design: .monospaced))
@@ -56,8 +50,6 @@ struct ErrorSheet: View {
                                 )
                         }
                         .padding(.horizontal)
-                        
-                        // Note explicative
                         VStack(alignment: .leading, spacing: 8) {
                             Label("What does this mean?", systemImage: "info.circle")
                                 .font(.subheadline)
@@ -69,8 +61,6 @@ struct ErrorSheet: View {
                                 .foregroundColor(.secondary)
                         }
                         .padding(.horizontal)
-                        
-                        // Solutions suggérées
                         VStack(alignment: .leading, spacing: 8) {
                             Label("Possible solutions", systemImage: "lightbulb")
                                 .font(.subheadline)
@@ -87,7 +77,6 @@ struct ErrorSheet: View {
                         }
                         .padding(.horizontal)
                     }
-                    
                     Spacer()
                 }
             }
@@ -95,7 +84,6 @@ struct ErrorSheet: View {
             .navigationBarItems(
                 leading: Button("Close") {
                     isPresented = false
-                    // Exécuter le callback de fermeture qui navigue vers ResearchProteins
                     onClose()
                 }
             )

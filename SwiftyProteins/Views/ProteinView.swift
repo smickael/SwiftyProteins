@@ -29,7 +29,6 @@ struct ProteinView: View {
     @State var scientificMode: Bool = false
     @State private var showOptionsMenu = false
     
-    // Alerte favori
     @State private var showFavoriteAlert = false
     @State private var favoriteAlertMessage = ""
     
@@ -37,13 +36,13 @@ struct ProteinView: View {
     @State private var motionManager = CMMotionManager()
     @State private var parallaxOffset = CGSize.zero
     
-    // Constantes parallax simplifiées
+    // Consts for parallax effect
     private let parallaxFactor: CGFloat = 22
     private let parallaxClamp: CGFloat = 50
-    private let parallaxSmoothing: CGFloat = 0.12   // 0..1
+    private let parallaxSmoothing: CGFloat = 0.12
     private let parallaxJitterThreshold: CGFloat = 0.15
     
-    // Constante de zoom du fond scientifique (utilisée aussi dans le screenshot)
+    // Const for scientific background scale
     private let scientificBackgroundScale: CGFloat = 1.8
     
     var body: some View {
@@ -53,7 +52,7 @@ struct ProteinView: View {
                 ZStack {
                     if scientificMode {
                         GeometryReader { geometry in
-                            let scale: CGFloat = scientificBackgroundScale // Zoom centré
+                            let scale: CGFloat = scientificBackgroundScale
                             let extraX = (scale - 1) * geometry.size.width / 2
                             let extraY = (scale - 1) * geometry.size.height / 2
                             let clampedX = min(max(parallaxOffset.width, -extraX), extraX)
@@ -89,7 +88,6 @@ struct ProteinView: View {
                 )
                 .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 
-                // Boutons en position relative dans un HStack
                 HStack(spacing: 12) {
                     // Bouton Options
                     Button(action: {
@@ -148,7 +146,7 @@ struct ProteinView: View {
                         Button("Cancel", role: .cancel) { }
                     }
                     
-                    // Bouton Favorite
+                    // Favorite button
                     Button(action: {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                             let wasFavorite = proteins.isFavorite(protein)
@@ -188,7 +186,6 @@ struct ProteinView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
             
-            // InfosSheet avec dimensions contrôlées
             if showCardAtom {
                 InfosSheet(atomSelected: $atomSelected, isPresented: $showCardAtom)
                     .frame(maxWidth: UIScreen.main.bounds.width) // Limite la largeur
@@ -202,7 +199,7 @@ struct ProteinView: View {
                     .zIndex(99)
             }
         }
-        .clipped() // S'assurer que rien ne dépasse de l'écran
+        .clipped()
         .toolbar(.hidden, for: .tabBar)
         .sheet(isPresented: $showErrorSheet) {
             ErrorSheet(
@@ -294,7 +291,6 @@ struct ProteinView: View {
     }
     
     private func composeBackgroundIfNeeded(sceneImage: UIImage, size: CGSize) -> UIImage {
-        // Scientific mode: réintègre l'image parallaxée. Sinon, ajoute fond gris.
         if scientificMode, let bg = UIImage(named: "ContaminationBackground") {
             let scale = scientificBackgroundScale
             let extraX = (scale - 1) * size.width / 2
@@ -322,7 +318,6 @@ struct ProteinView: View {
         let bottomPadding: CGFloat = 32
         let horizontalPadding: CGFloat = 16
         let maxWidth = size.width - horizontalPadding * 2
-        // Trouve la taille de police adaptée
         func fittedFont(_ start: CGFloat) -> UIFont {
             var s = start
             while s > 8 {

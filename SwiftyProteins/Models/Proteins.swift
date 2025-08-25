@@ -57,7 +57,7 @@ struct Protein: Identifiable {
     }
 }
 
-// Structure pour stocker les données d'atomes et liaisons
+// Struct to hold atoms and bonds data
 private struct MoleculeData {
     var atoms: [Int: AtomInfo] = [:]
     var bonds: [(Int, Int)] = []
@@ -113,19 +113,19 @@ class Proteins: ObservableObject {
         return nil
     }
     
-    // Version optimisée avec async/await
+    // Create Scene from SDF file
     func createScene(name: String, scene: SCNScene, showHydrogen: Bool = true, squareHydrogenShape: Bool = false) async -> (success: Bool, errorMessage: String?) {
         guard let url = URL(string: "https://files.rcsb.org/ligands/view/\(name.uppercased())_ideal.sdf") else {
-            return (false, "URL invalide pour \(name)")
+            return (false, "Invalid URL for \(name)")
         }
         
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             guard let fileContent = String(data: data, encoding: .utf8) else {
-                return (false, "Impossible de décoder le fichier pour \(name)")
+                return (false, "Cannot decode file for \(name)")
             }
             
-            // Trouver la ligne V2000
+            // Find V2000 line
             let lines = fileContent.components(separatedBy: .newlines)
             var v2000Line = ""
             var v2000Index = -1
@@ -138,81 +138,79 @@ class Proteins: ObservableObject {
                 }
             }
             
-            // Vérification stricte : V2000 doit exister
+            // Strict check: V2000 line must be present
             guard v2000Index >= 0 else {
                 let errorMsg = """
-❌ Fichier SDF invalide : ligne V2000 introuvable
+❌ SDF invalid file: missing V2000 line
 
-📋 Format attendu :
-[nb_atomes] [nb_liaisons]  0  0  0  0  0999 V2000
-Exemple : 12    11  0  0  0  0  0  0  0999 V2000
+📋 Expected format :
+[atoms_nb] [bonds_nb]  0  0  0  0  0999 V2000
+Example : 12    11  0  0  0  0  0  0  0999 V2000
 
-🔍 Ligne trouvée : \(v2000Line.isEmpty ? "aucune" : v2000Line)
+🔍 Found line : \(v2000Line.isEmpty ? "none" : v2000Line)
 """
                 return (false, errorMsg)
             }
             
-            // Parser les compteurs d'atomes et liaisons
+            // Parse atom and bond counts
             let parts = v2000Line.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
             guard parts.count >= 2,
                   let atomCount = Int(parts[0]),
                   let bondCount = Int(parts[1]),
                   atomCount > 0 else {
                 let errorMsg = """
-❌ Compteurs invalides dans le fichier SDF
+❌ Invalid counters in SDF file
 
-📋 Format attendu :
-[nb_atomes] [nb_liaisons]  0  0  0  0  0999 V2000
-Exemple : 12    11  0  0  0  0  0  0  0999 V2000
+📋 Expected format :
+[atoms_nb] [bonds_nb]  0  0  0  0  0999 V2000
+Example : 12    11  0  0  0  0  0  0  0999 V2000
 
-🔍 Ligne trouvée :
+🔍 Found line :
 \(v2000Line)
 """
                 return (false, errorMsg)
             }
             
-            // Vérification stricte : assez de lignes disponibles
+            // Strict check: ensure enough lines for atoms and bonds
             let requiredLines = v2000Index + 1 + atomCount + bondCount
             guard lines.count >= requiredLines else {
                 let errorMsg = """
-❌ Fichier SDF tronqué
+❌ SDF truncated file
 
-📋 Format attendu :
-[nb_atomes] [nb_liaisons]  0  0  0  0  0999 V2000
-Exemple : 12    11  0  0  0  0  0  0  0999 V2000
+📋 Expected format :
+[atoms_nb] [bonds_nb]  0  0  0  0  0999 V2000
+Example : 12    11  0  0  0  0  0  0  0999 V2000
 
-🔍 Ligne trouvée :
+🔍 Found line :
 \(v2000Line)
 
-📊 Statistiques :
-• Atomes attendus : \(atomCount)
-• Liaisons attendues : \(bondCount)  
-• Lignes disponibles : \(lines.count)
-• Lignes requises : \(requiredLines)
+📊 Statistics :
+• Expected atoms : \(atomCount)
+• Expected bonds : \(bondCount)  
+• Available lines : \(lines.count)
+• Required lines : \(requiredLines)
 """
                 return (false, errorMsg)
             }
             
-            // Parser les données
+            // Parse datas
             let moleculeData = await parseMoleculeData(from: fileContent, atomCount: atomCount, bondCount: bondCount, v2000Index: v2000Index)
             
-            // Vérification stricte : tous les atomes doivent être parsés
+            // Strict check: parsed atom count must match expected
             guard moleculeData.atoms.count == atomCount else {
                 let errorMsg = """
-❌ Échec du parsing des atomes
+❌ Error parsing SDF file
 
-📋 Format attendu :
-┌────────────────────────────────────────────┐
-│ [nb_atomes] [nb_liaisons]  0  0  0  0  0999 V2000 │
-│ Exemple : 12    11  0  0  0  0  0  0  0999 V2000   │
-└────────────────────────────────────────────┘
+📋 Expected format :
+[atoms_nb] [bonds_nb]  0  0  0  0  0999 V2000
+Example : 12    11  0  0  0  0  0  0  0999 V2000
 
-🔍 Ligne trouvée :
+🔍 Found line :
 \(v2000Line)
 
-📊 Résultat du parsing :
-• Atomes attendus : \(atomCount)
-• Atomes parsés : \(moleculeData.atoms.count)
+📊 Parsing results :
+• Expected atoms : \(atomCount)
+• Parsed atoms : \(moleculeData.atoms.count)
 """
                 return (false, errorMsg)
             }
@@ -221,18 +219,18 @@ Exemple : 12    11  0  0  0  0  0  0  0999 V2000
             return (true, nil)
             
         } catch {
-            return (false, "Erreur réseau : \(error.localizedDescription)")
+            return (false, "Network Error : \(error.localizedDescription)")
         }
     }
     
-    // Parsing optimisé des données moléculaires
+    // Optimized parsing of molecular data
     private func parseMoleculeData(from content: String, atomCount: Int, bondCount: Int, v2000Index: Int) async -> MoleculeData {
         return await withCheckedContinuation { continuation in
             Task {
                 var data = MoleculeData()
                 let lines = content.components(separatedBy: .newlines)
                 
-                // Parser les atomes (lignes strictement définies)
+                // Atoms parsing (strictly defined lines)
                 for i in 0..<atomCount {
                     let lineIndex = v2000Index + 1 + i
                     guard lineIndex < lines.count else { break }
@@ -243,7 +241,7 @@ Exemple : 12    11  0  0  0  0  0  0  0999 V2000
                     }
                 }
                 
-                // Parser les liaisons (lignes strictement définies)
+                // Bonds parsing (strictly defined lines)
                 for i in 0..<bondCount {
                     let lineIndex = v2000Index + 1 + atomCount + i
                     guard lineIndex < lines.count else { break }
@@ -259,10 +257,10 @@ Exemple : 12    11  0  0  0  0  0  0  0999 V2000
         }
     }
     
-    // Construction optimisée de la scène
+    // Create Scene
     @MainActor
     private func buildScene(scene: SCNScene, data: MoleculeData, showHydrogen: Bool, squareHydrogenShape: Bool) {
-        // Nettoyer la scène
+        // Clear previous nodes
         scene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
         
         let atomNode = SCNNode()
@@ -270,7 +268,7 @@ Exemple : 12    11  0  0  0  0  0  0  0999 V2000
         atomNode.name = "atomNode"
         bondNode.name = "bondNode"
         
-        // Créer les atomes
+        // Create atoms
         for (_, atomInfo) in data.atoms {
             if !showHydrogen && atomInfo.isHydrogen {
                 continue
@@ -280,7 +278,7 @@ Exemple : 12    11  0  0  0  0  0  0  0999 V2000
             atomNode.addChildNode(atom)
         }
         
-        // Créer les liaisons (en excluant celles avec l'hydrogène si nécessaire)
+        // Create bonds (excluding those with hydrogen if necessary)
         for (atom1, atom2) in data.bonds {
             guard let atomInfo1 = data.atoms[atom1],
                   let atomInfo2 = data.atoms[atom2] else { continue }
@@ -298,7 +296,7 @@ Exemple : 12    11  0  0  0  0  0  0  0999 V2000
         setupLighting(scene: scene)
     }
     
-    // Helpers optimisés
+    // Helpers
     private func parseAtomLine(_ line: String, index: Int) -> MoleculeData.AtomInfo? {
         guard line.count >= 34 else { return nil }
         
@@ -339,7 +337,7 @@ Exemple : 12    11  0  0  0  0  0  0  0999 V2000
         node.geometry?.firstMaterial?.diffuse.contents = color
         
         if squareShape {
-            // Appliquer une forme carrée pour l'hydrogène
+            // Apply square shape to hydrogen atom
             let box = SCNBox(width: 0.3, height: 0.3, length: 0.3, chamferRadius: 0)
             node.geometry = box
         }
@@ -386,7 +384,7 @@ Exemple : 12    11  0  0  0  0  0  0  0999 V2000
         scene.rootNode.addChildNode(ambientLightNode)
     }
     
-    // Méthodes pour les favoris
+    // Handle favorites
     func toggleFavorite(_ protein: Protein) {
         if let index = favorites.firstIndex(where: { $0.id == protein.id }) {
             favorites.remove(at: index)
