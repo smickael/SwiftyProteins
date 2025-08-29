@@ -8,7 +8,6 @@
 
 import SwiftUI
 import SceneKit
-import UIKit
 
 struct SceneKitView: UIViewRepresentable {
     
@@ -52,7 +51,7 @@ struct SceneKitView: UIViewRepresentable {
         private var lastCameraCheck: Date = Date(timeIntervalSince1970: 0)
         private var hapticGenerator: UIImpactFeedbackGenerator? = nil
         private var currentHapticStyle: UIImpactFeedbackGenerator.FeedbackStyle = .light
-        private let minimumHapticInterval: TimeInterval = 0.05 // 50ms min to avoid too frequent haptics
+        private let minimumHapticInterval: TimeInterval = 0.1 // 100ms min
         
         init(_ sceneKitView: SceneKitView, show: Binding<Bool>, atomSelected: Binding<String>) {
             self.parent = sceneKitView
@@ -127,7 +126,7 @@ struct SceneKitView: UIViewRepresentable {
             hapticGenerator = UIImpactFeedbackGenerator(style: currentHapticStyle)
             hapticGenerator?.prepare()
             
-            Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] timer in
+            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
                 self?.updateCameraObserver(sceneView: sceneView)
             }
         }
@@ -165,7 +164,8 @@ struct SceneKitView: UIViewRepresentable {
             let hapticSettings = getHapticSettings(speed: speed)
             
             let timeSinceLastHaptic = now.timeIntervalSince(self.lastCameraHaptic)
-            let requiredInterval = max(hapticSettings.interval, minimumHapticInterval)
+            let requiredInterval = max(hapticSettings.interval, 0.12)
+
             
             if timeSinceLastHaptic >= requiredInterval {
                 if currentHapticStyle != hapticSettings.intensity {

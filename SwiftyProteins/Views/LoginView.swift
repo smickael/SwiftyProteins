@@ -11,9 +11,17 @@ import LocalAuthentication
 struct LoginView: View {
     
     @EnvironmentObject var proteins: Proteins
-    @State private var showButtonFaceID = true
+    
     @State private var showAlert = false
     @State private var textAlert = ""
+    
+    @State private var username = ""
+    @State private var password = ""
+    
+    @State private var accountExists = false
+    @State private var savedUsername = ""
+    
+    @State private var showSplash = true
     
     var body: some View {
         Group {
@@ -24,109 +32,168 @@ struct LoginView: View {
                     Image("SplashScreen")
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                        .scaleEffect(1.08)
-                        .offset(x: -30)
-                        .clipped()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .ignoresSafeArea()
                         .accessibilityHidden(true)
-                        .blur(radius: 3)
-                    VStack(alignment: .center, spacing: 42) {
+                        .scaleEffect(1.1)
+                        .offset(x: -6)
+                        .blur(radius: 1)
+                    
+                    if showSplash {
                         VStack(spacing: 16) {
                             Image("Image")
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 96, height: 96)
-                                .accessibilityHidden(true)
                                 .cornerRadius(20)
+                                .accessibilityHidden(true)
                             Text("Swifty\nProteins")
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.8)
                         }
-                        if showButtonFaceID {
-                            Button(action: { self.authenticate() }) {
-                                ZStack {
-                                    Circle().foregroundColor(Color("Button")).shadow(radius: 30)
-                                    Image(systemName: "faceid")
-                                        .font(.system(size: 42))
-                                        .foregroundColor(Color("Shadow"))
+                    } else {
+                        VStack(spacing: 32) {
+                            
+                            VStack(spacing: 16) {
+                                Image("Image")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 96, height: 96)
+                                    .cornerRadius(20)
+                                    .accessibilityHidden(true)
+                                Text("Swifty\nProteins")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .multilineTextAlignment(.center)
+                            }
+                            
+                            if accountExists {
+                                Text("Log in as \(savedUsername)")
+                                    .font(.subheadline.bold())
+                            } else {
+                                Text("Create your account")
+                                    .font(.subheadline.bold())
+                            }
+                            
+                            VStack(spacing: 16) {
+                                TextField("Username", text: $username)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                SecureField("Password", text: $password)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                            }
+                            
+                            Button(action: {
+                                if accountExists {
+                                    login()
+                                } else {
+                                    createAccount()
                                 }
-                                .frame(width: 100, height: 100)
+                            }) {
+                                Text(accountExists ? "Login" : "Create Account")
+                                    .fontWeight(.semibold)
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color("Button"))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
                             }
-                            .alert(isPresented: $showAlert) {
-                                Alert(title: Text("Face ID Error"), message: Text(textAlert), dismissButton: .cancel())
+                            
+                            if accountExists {
+                                Button(action: { authenticate() }) {
+                                    HStack {
+                                        Image(systemName: "faceid")
+                                            .font(.system(size: 24))
+                                        Text("Login with Face ID")
+                                    }
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(10)
+                                }
                             }
-                        } else {
-                            Button(action: { self.proteins.isUnlocked.toggle() }) {
-                                Text("Unlock without Face ID or Touch ID")
-                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .frame(maxWidth: 400)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                }
+                .onAppear {
+                    loadAccount()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        withAnimation(.easeInOut) {
+                            showSplash = false
                         }
                     }
-                    .padding(.horizontal, 24)
                 }
-                .transition(.opacity.combined(with: .scale))
             }
         }
         .animation(.easeInOut(duration: 0.35), value: proteins.isUnlocked)
-        .onAppear(perform: checkFaceID)
     }
     
-    /* Functions */
+    // MARK: - Functions
     
-    func    checkFaceID() {
-        let context = LAContext()
-        var error: NSError?
-        
-        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-            switch context.biometryType {
-            case .faceID:
-                self.showButtonFaceID = true
-            case .touchID:
-                self.showButtonFaceID = true
-            case .none:
-                self.showButtonFaceID = false
-            default:
-                self.showButtonFaceID = false
-            }
+    func loadAccount() {
+        if let savedUser = UserDefaults.standard.string(forKey: "username"),
+           let _ = UserDefaults.standard.string(forKey: "password") {
+            accountExists = true
+            savedUsername = savedUser
+            username = savedUser
+        } else {
+            accountExists = false
         }
     }
     
-    func    authenticate() {
+    func createAccount() {
+        guard !username.isEmpty, !password.isEmpty else {
+            textAlert = "Please fill all fields."
+            showAlert = true
+            return
+        }
+        UserDefaults.standard.set(username, forKey: "username")
+        UserDefaults.standard.set(password, forKey: "password")
+        savedUsername = username
+        accountExists = true
+        proteins.isUnlocked = true
+    }
+    
+    func login() {
+        let storedUser = UserDefaults.standard.string(forKey: "username")
+        let storedPass = UserDefaults.standard.string(forKey: "password")
+        
+        if username == storedUser && password == storedPass {
+            proteins.isUnlocked = true
+        } else {
+            textAlert = "Invalid username or password."
+            showAlert = true
+        }
+    }
+    
+    func authenticate() {
         let context = LAContext()
         var error: NSError?
         
         if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-            let reason = "Please authenticate yourself with FaceID."
-            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, authentificationError in
+            let reason = "Login with Face ID"
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, _ in
                 DispatchQueue.main.async {
                     if success {
-                        self.proteins.isUnlocked.toggle()
+                        proteins.isUnlocked = true
                     } else {
-                        self.textAlert = "Please authenticate yourself with FaceID."
-                        self.showAlert = true
+                        textAlert = "Face ID failed."
+                        showAlert = true
                     }
                 }
             }
         } else {
-            self.textAlert = "FaceID has not been activated."
-            self.showAlert = true
+            textAlert = "Face ID not available."
+            showAlert = true
         }
     }
-    /* End Functions */
 }
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        LoginView()
-            .environmentObject(Proteins(file: "ressources"))
-            .environment(\.colorScheme, .light)
-    }
-}
-
 
 #Preview {
     LoginView()
+        .environmentObject(Proteins(file: "ressources"))
+        .environment(\.colorScheme, .light)
 }
